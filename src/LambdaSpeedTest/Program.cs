@@ -31,10 +31,11 @@ internal class Program
     {
         int[] widths = new int[2];
         string[] headings = new[] { "Size", "Time (ms)" };
-        widths[0] = GetMaxWidth(results, r => r.Size, headings[0].Length);
-        widths[1] = GetMaxWidth(results, r => r.ElapsedTime, headings[1].Length);
+        string numberFormat = "n0";
+        widths[0] = GetMaxWidth(results, r => r.Size, headings[0].Length, numberFormat);
+        widths[1] = GetMaxWidth(results, r => r.ElapsedTime, headings[1].Length, numberFormat);
         string hrule = "+" + string.Join("+", widths.Select(static (w) => new string('-', w + 2))) + "+";
-        string lineFormat = $"| {{0,-{widths[0]}}} | {{1, -{widths[1]}}} |";
+        string lineFormat = $"| {{0,{widths[0]}:{numberFormat}}} | {{1,{widths[1]}:{numberFormat}}} |";
         writeLine(hrule);
         writeLine(string.Format(CultureInfo.CurrentCulture, lineFormat, headings[0], headings[1]));
         writeLine(hrule);
@@ -46,9 +47,9 @@ internal class Program
         writeLine("");
     }
 
-    private static int GetMaxWidth(IEnumerable<TestDataResult> data, Func<TestDataResult, object> selector, int min)
+    private static int GetMaxWidth(IEnumerable<TestDataResult> data, Func<TestDataResult, IFormattable> selector, int min, string format)
     {
-        int calc = data.Select(x => selector(x)?.ToString()?.Length ?? 0).Max();
+        int calc = data.Select(x => selector(x)?.ToString(format, CultureInfo.CurrentCulture)?.Length ?? 0).Max();
         return calc < min ? min : calc;
     }
 }
