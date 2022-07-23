@@ -1,4 +1,8 @@
-﻿namespace LambdaSpeedTest;
+﻿using System.Globalization;
+
+[assembly: CLSCompliant(true)]
+
+namespace LambdaSpeedTest;
 
 internal class Program
 {
@@ -32,11 +36,11 @@ internal class Program
         string hrule = "+" + string.Join("+", widths.Select(static (w) => new string('-', w + 2))) + "+";
         string lineFormat = $"| {{0,-{widths[0]}}} | {{1, -{widths[1]}}} |";
         writeLine(hrule);
-        writeLine(string.Format(lineFormat, headings[0], headings[1]));
+        writeLine(string.Format(CultureInfo.CurrentCulture, lineFormat, headings[0], headings[1]));
         writeLine(hrule);
         foreach (TestDataResult record in results)
         {
-            writeLine(string.Format(lineFormat, record.Size, record.ElapsedTime));
+            writeLine(string.Format(CultureInfo.CurrentCulture, lineFormat, record.Size, record.ElapsedTime));
         }
         writeLine(hrule);
         writeLine("");

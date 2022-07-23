@@ -76,7 +76,9 @@ internal class TestRunner
     {
         for (int i = 0; i < size; ++i)
         {
+#pragma warning disable CA5394 // Do not use insecure randomness
             _testSourceData.Add(_random.Next(int.MaxValue / 4));
+#pragma warning restore CA5394 // Do not use insecure randomness
         }
     }
 }
