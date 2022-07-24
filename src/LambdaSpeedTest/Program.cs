@@ -8,6 +8,9 @@ internal class Program
 {
     static void Main(string[] args)
     {
+        RunTest(static (r) => r.TestWithForeachAndVirtualInstanceMethod, "Foreach loop, virtual instance method", Console.WriteLine);
+        RunTest(static (r) => r.TestWithForeachAndInstanceMethod, "Foreach loop, instance method", Console.WriteLine);
+        RunTest(static (r) => r.TestWithForeachAndStaticMethod, "Foreach loop, static method", Console.WriteLine);
         RunTest(static (r) => r.TestWithForeachAndInstanceLambda, "Foreach loop, instance lambda", Console.WriteLine);
         RunTest(static (r) => r.TestWithForeachAndStaticLambda, "Foreach loop, static lambda", Console.WriteLine);
         RunTest(static (r) => r.TestWithSelectAndInstanceLambda, "LINQ, instance lambda", Console.WriteLine);
@@ -24,13 +27,15 @@ internal class Program
             long result = testSelector(runner).Invoke();
             results.Add(new TestDataResult(i, result));
         }
+        // Aggressively get rid of the rubbish now to try to avoid it confusing our stats if it runs during a test
+        GC.Collect(3, GCCollectionMode.Forced, true);
         OutputRecordSet(results, writeLine);
     }
 
     private static void OutputRecordSet(IList<TestDataResult> results, Action<string> writeLine)
     {
         int[] widths = new int[2];
-        string[] headings = new[] { "Size", "Time (ms)" };
+        string[] headings = new[] { "Size", "Time (ticks)" };
         string numberFormat = "n0";
         widths[0] = GetMaxWidth(results, r => r.Size, headings[0].Length, numberFormat);
         widths[1] = GetMaxWidth(results, r => r.ElapsedTime, headings[1].Length, numberFormat);

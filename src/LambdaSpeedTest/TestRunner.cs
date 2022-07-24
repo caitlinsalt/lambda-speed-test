@@ -17,6 +17,15 @@ internal class TestRunner
         PopulateSourceData(size);
     }
 
+    public long TestWithForeachAndVirtualInstanceMethod()
+        => RunTestWithStopwatch(TestMethodWithForeachAndVirtualInstanceMethod);
+
+    public long TestWithForeachAndInstanceMethod()
+        => RunTestWithStopwatch(TestMethodWithForeachAndInstanceMethod);
+
+    public long TestWithForeachAndStaticMethod()
+        => RunTestWithStopwatch(TestMethodWithForeachAndStaticMethod);
+
     public long TestWithForeachAndInstanceLambda()
         => RunTestWithStopwatch(TestMethodWithForeachAndInstanceLambda);
 
@@ -28,6 +37,43 @@ internal class TestRunner
 
     public long TestWithSelectAndStaticLambda()
         => RunTestWithStopwatch(TestMethodWithSelectAndStaticLambda);
+
+    private void TestMethodWithForeachAndVirtualInstanceMethod()
+    {
+        foreach (int val in _testSourceData)
+        {
+            TestOutputData.Add(VirtualInstanceMethod(val));
+        }
+    }
+
+    protected virtual int VirtualInstanceMethod(int x)
+        => x * 3 + 5;
+
+    private void TestMethodWithForeachAndInstanceMethod()
+    {
+        foreach (int val in _testSourceData)
+        {
+            TestOutputData.Add(InstanceMethod(val));
+        }
+    }
+
+#pragma warning disable CA1822 // Mark members as static
+
+    private int InstanceMethod(int x)
+        => x * 3 + 5;
+
+#pragma warning restore CA1822 // Mark members as static
+
+    private void TestMethodWithForeachAndStaticMethod()
+    {
+        foreach (int val in _testSourceData)
+        {
+            TestOutputData.Add(StaticMethod(val));
+        }
+    }
+
+    private static int StaticMethod(int x)
+        => x * 3 + 5;
 
     private void TestMethodWithForeachAndInstanceLambda()
     {
@@ -69,7 +115,7 @@ internal class TestRunner
         watch.Start();
         testFunction();
         watch.Stop();
-        return watch.ElapsedMilliseconds;
+        return watch.ElapsedTicks;
     }
 
     private void PopulateSourceData(int size)
