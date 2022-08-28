@@ -1,5 +1,4 @@
 ﻿using CommandLine;
-using System.Globalization;
 
 [assembly: CLSCompliant(true)]
 
@@ -14,7 +13,7 @@ internal class Program
 
     private static void RunApp(Options options)
     {
-        IOutputter outputter = new ConsoleOutputter();
+        IOutputter outputter = options.Quiet ? new QuietConsoleOutputter() : new ConsoleOutputter();
         RunTest(static (r) => r.TestWithForeachAndVirtualInstanceMethod, "Foreach loop, virtual instance method", options.Count, outputter);
         RunTest(static (r) => r.TestWithForeachAndInstanceMethod, "Foreach loop, instance method", options.Count, outputter);
         RunTest(static (r) => r.TestWithForeachAndStaticMethod, "Foreach loop, static method", options.Count, outputter);

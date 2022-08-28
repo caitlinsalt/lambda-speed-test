@@ -1,6 +1,6 @@
 ﻿namespace LambdaSpeedTest;
 
-internal interface IOutputter
+public interface IOutputter
 {
     void StartProgress(string testName);
 
