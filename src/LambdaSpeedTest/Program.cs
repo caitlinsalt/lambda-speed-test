@@ -31,7 +31,10 @@ internal class Program
         List<TestDataAverageResult> results = new();
 
         // The first invocation of the test method incurs overhead which we don't want to affect the results.
-        _ = testSelector(new TestRunner(1)).Invoke();
+        using (TestRunner throwaway = new(1))
+        {
+            _ = testSelector(throwaway).Invoke();
+        }
 
         for (int size = 1; size <= 1_000_000_000; size *= 10)
         {

@@ -156,6 +156,11 @@ internal class TestRunner : IDisposable
 
     private void PopulateSourceData(int size)
     {
+        if (_testSourceData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         for (int i = 0; i < size; ++i)
         {
 #pragma warning disable CA5394 // Do not use insecure randomness
