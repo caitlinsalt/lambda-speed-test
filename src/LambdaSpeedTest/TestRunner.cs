@@ -2,13 +2,14 @@
 
 namespace LambdaSpeedTest;
 
-internal class TestRunner
+internal class TestRunner : IDisposable
 {
     private static readonly Random _random = new();
 
-    private readonly List<int> _testSourceData;
+    private List<int>? _testSourceData;
+    private bool _disposed;
 
-    internal List<int> TestOutputData { get; init; }
+    internal List<int>? TestOutputData { get; private set; }
 
     internal TestRunner(int size)
     {
@@ -40,6 +41,11 @@ internal class TestRunner
 
     private void TestMethodWithForeachAndVirtualInstanceMethod()
     {
+        if (_testSourceData is null || TestOutputData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         foreach (int val in _testSourceData)
         {
             TestOutputData.Add(VirtualInstanceMethod(val));
@@ -51,6 +57,11 @@ internal class TestRunner
 
     private void TestMethodWithForeachAndInstanceMethod()
     {
+        if (_testSourceData is null || TestOutputData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         foreach (int val in _testSourceData)
         {
             TestOutputData.Add(InstanceMethod(val));
@@ -66,6 +77,11 @@ internal class TestRunner
 
     private void TestMethodWithForeachAndStaticMethod()
     {
+        if (_testSourceData is null || TestOutputData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         foreach (int val in _testSourceData)
         {
             TestOutputData.Add(StaticMethod(val));
@@ -77,6 +93,11 @@ internal class TestRunner
 
     private void TestMethodWithForeachAndInstanceLambda()
     {
+        if (_testSourceData is null || TestOutputData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         var lambda = (int x) => x * 3 + 5;
         foreach (int val in _testSourceData)
         {
@@ -86,6 +107,11 @@ internal class TestRunner
 
     private void TestMethodWithForeachAndStaticLambda()
     {
+        if (_testSourceData is null || TestOutputData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         var lambda = static (int x) => x * 3 + 5;
         foreach (int val in _testSourceData)
         {
@@ -95,6 +121,11 @@ internal class TestRunner
 
     private void TestMethodWithSelectAndInstanceLambda()
     {
+        if (_testSourceData is null || TestOutputData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         foreach (int output in _testSourceData.Select(x => x * 3 + 5))
         {
             TestOutputData.Add(output);
@@ -103,6 +134,11 @@ internal class TestRunner
 
     private void TestMethodWithSelectAndStaticLambda()
     {
+        if (_testSourceData is null || TestOutputData is null)
+        {
+            throw new InvalidOperationException();
+        }
+
         foreach (int output in _testSourceData.Select(static (x) => x * 3 + 5))
         {
             TestOutputData.Add(output);
@@ -126,5 +162,21 @@ internal class TestRunner
             _testSourceData.Add(_random.Next(int.MaxValue / 4));
 #pragma warning restore CA5394 // Do not use insecure randomness
         }
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            _testSourceData = null;
+            TestOutputData = null;
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

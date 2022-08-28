@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace LambdaSpeedTest;
 
-namespace LambdaSpeedTest
+internal record TestDataResult(int Size, long ElapsedTime)
 {
-    internal record TestDataResult(int Size, long ElapsedTime);
+    public double ElapsedTimeMs => ElapsedTime / 10_000d;
 }

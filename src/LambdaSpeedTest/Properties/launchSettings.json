@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LambdaSpeedTest": {
+      "commandName": "Project",
+      "commandLineArgs": "-c 2"
+    }
+  }
+}

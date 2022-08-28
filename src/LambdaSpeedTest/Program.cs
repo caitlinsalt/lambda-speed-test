@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using CommandLine;
+using System.Globalization;
 
 [assembly: CLSCompliant(true)]
 
@@ -6,53 +7,81 @@ namespace LambdaSpeedTest;
 
 internal class Program
 {
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
-        RunTest(static (r) => r.TestWithForeachAndVirtualInstanceMethod, "Foreach loop, virtual instance method", Console.WriteLine);
-        RunTest(static (r) => r.TestWithForeachAndInstanceMethod, "Foreach loop, instance method", Console.WriteLine);
-        RunTest(static (r) => r.TestWithForeachAndStaticMethod, "Foreach loop, static method", Console.WriteLine);
-        RunTest(static (r) => r.TestWithForeachAndInstanceLambda, "Foreach loop, instance lambda", Console.WriteLine);
-        RunTest(static (r) => r.TestWithForeachAndStaticLambda, "Foreach loop, static lambda", Console.WriteLine);
-        RunTest(static (r) => r.TestWithSelectAndInstanceLambda, "LINQ, instance lambda", Console.WriteLine);
-        RunTest(static (r) => r.TestWithSelectAndStaticLambda, "LINQ, static lambda", Console.WriteLine);
+        Parser.Default.ParseArguments<Options>(args).WithParsed(opt => RunApp(opt));
     }
 
-    private static void RunTest(Func<TestRunner, Func<long>> testSelector, string testName, Action<string> writeLine)
+    private static void RunApp(Options options)
+    {
+        RunTest(static (r) => r.TestWithForeachAndVirtualInstanceMethod, "Foreach loop, virtual instance method", options.Count, Console.WriteLine);
+        RunTest(static (r) => r.TestWithForeachAndInstanceMethod, "Foreach loop, instance method", options.Count, Console.WriteLine);
+        RunTest(static (r) => r.TestWithForeachAndStaticMethod, "Foreach loop, static method", options.Count, Console.WriteLine);
+        RunTest(static (r) => r.TestWithForeachAndInstanceLambda, "Foreach loop, instance lambda", options.Count, Console.WriteLine);
+        RunTest(static (r) => r.TestWithForeachAndStaticLambda, "Foreach loop, static lambda", options.Count, Console.WriteLine);
+        RunTest(static (r) => r.TestWithSelectAndInstanceLambda, "LINQ, instance lambda", options.Count, Console.WriteLine);
+        RunTest(static (r) => r.TestWithSelectAndStaticLambda, "LINQ, static lambda", options.Count, Console.WriteLine);
+    }
+
+    private static void RunTest(Func<TestRunner, Func<long>> testSelector, string testName, int repeatCount, Action<string> writeLine)
     {
         writeLine($"Running test \"{testName}\"");
-        List<TestDataResult> results = new();
-        for (int i = 1; i <= 1_000_000_000; i *= 10)
+        List<TestDataAverageResult> results = new();
+
+        // The first invocation of the test method incurs overhead which we don't want to affect the results.
+        _ = testSelector(new TestRunner(1)).Invoke();
+
+        for (int size = 1; size <= 1_000_000_000; size *= 10)
         {
-            TestRunner runner = new(i);
-            long result = testSelector(runner).Invoke();
-            results.Add(new TestDataResult(i, result));
+            TestDataAverageResult collectedResults = new(size);
+            for (int repeats = 0; repeats < repeatCount; repeats++)
+            {
+                using (TestRunner runner = new(size))
+                {
+                    long result = testSelector(runner).Invoke();
+                    collectedResults.Add(new TestDataResult(size, result));
+                }
+
+                // Aggressively get rid of the rubbish now to try to avoid it confusing our stats if it runs during a test
+                GC.Collect(3, GCCollectionMode.Forced, true);
+                GC.Collect(3, GCCollectionMode.Forced, true);
+                GC.Collect(3, GCCollectionMode.Forced, true);
+            }
+            results.Add(collectedResults);
         }
-        // Aggressively get rid of the rubbish now to try to avoid it confusing our stats if it runs during a test
-        GC.Collect(3, GCCollectionMode.Forced, true);
+        
         OutputRecordSet(results, writeLine);
     }
 
-    private static void OutputRecordSet(IList<TestDataResult> results, Action<string> writeLine)
+    private static void OutputRecordSet(IList<TestDataAverageResult> results, Action<string> writeLine)
     {
-        int[] widths = new int[2];
-        string[] headings = new[] { "Size", "Time (ticks)" };
-        string numberFormat = "n0";
-        widths[0] = GetMaxWidth(results, r => r.Size, headings[0].Length, numberFormat);
-        widths[1] = GetMaxWidth(results, r => r.ElapsedTime, headings[1].Length, numberFormat);
+        string[] headings = new[] { "Size", "Time (ticks)", "Time (ms)" };
+        string integerNumberFormat = "n0";
+        string decimalNumberFormat = "n1";
+        int[] widths = headings.Select((h, i) => GetMaxWidth(results, GetPropertySelector(i), h.Length, integerNumberFormat)).ToArray();
         string hrule = "+" + string.Join("+", widths.Select(static (w) => new string('-', w + 2))) + "+";
-        string lineFormat = $"| {{0,{widths[0]}:{numberFormat}}} | {{1,{widths[1]}:{numberFormat}}} |";
+        string lineFormat = $"| {{0,{widths[0]}:{integerNumberFormat}}} | {{1,{widths[1]}:{integerNumberFormat}}} | {{2,{widths[2]}:{decimalNumberFormat}}} |";
         writeLine(hrule);
-        writeLine(string.Format(CultureInfo.CurrentCulture, lineFormat, headings[0], headings[1]));
+        writeLine(string.Format(CultureInfo.CurrentCulture, lineFormat, headings[0], headings[1], headings[2]));
         writeLine(hrule);
-        foreach (TestDataResult record in results)
+        foreach (TestDataAverageResult record in results)
         {
-            writeLine(string.Format(CultureInfo.CurrentCulture, lineFormat, record.Size, record.ElapsedTime));
+            writeLine(string.Format(CultureInfo.CurrentCulture, lineFormat, record.Size, record.ElapsedTime, record.ElapsedTimeMs));
         }
         writeLine(hrule);
         writeLine("");
     }
 
-    private static int GetMaxWidth(IEnumerable<TestDataResult> data, Func<TestDataResult, IFormattable> selector, int min, string format)
+    private static Func<TestDataAverageResult, IFormattable> GetPropertySelector(int columnIndex)
+        => columnIndex switch
+        {
+            0 => r => r.Size,
+            1 => r => r.ElapsedTime,
+            2 => r => r.ElapsedTimeMs,
+            _ => throw new NotSupportedException(),
+        };
+
+    private static int GetMaxWidth(IEnumerable<TestDataAverageResult> data, Func<TestDataAverageResult, IFormattable> selector, int min, string format)
     {
         int calc = data.Select(x => selector(x)?.ToString(format, CultureInfo.CurrentCulture)?.Length ?? 0).Max();
         return calc < min ? min : calc;
