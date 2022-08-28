@@ -2,7 +2,7 @@
 
 namespace LambdaSpeedTest;
 
-internal record TestDataAverageResult(int Size)
+public record TestDataAverageResult(int Size)
 {
     private readonly List<TestDataResult> _results = new();
 
